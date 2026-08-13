@@ -82,7 +82,6 @@
             display: none !important;
         }
 
-        /* Module configuration layout spacing */
         .wrapper-zone {
             position: relative;
             width: 280px;
@@ -96,6 +95,142 @@
 
         #surfaceLayer {
             position: absolute;
+            top: 0;
+            left: 0;
+            cursor: pointer;
+            z-index: 2;
+            touch-action: none; /* Crucial: stops phone scrolling while rubbing canvas */
+        }
+
+        #dataDisplay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .output-header {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #ff4d6d;
+            margin: 0;
+        }
+
+        .output-body {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #4a4a4a;
+            margin: 5px 0 0 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Block 1: Initial State -->
+    <div id="viewOne" class="card">
+        <div style="font-size: 3rem;">🥺</div>
+        <h1>I am so sorry, love...</h1>
+        <p>I hate it when we fight, and I hate being the reason you are upset. Will you please accept my apology and let me make it up to you?</p>
+        
+        <div class="btn-container">
+            <button id="yesBtn" onclick="triggerNextState()">YES</button>
+            <button id="noBtn" onmouseover="shiftPosition()" ontouchstart="shiftPosition(event)">NO</button>
+        </div>
+    </div>
+
+    <!-- Block 2: Terminal State -->
+    <div id="viewTwo" class="card hidden">
+        <div style="font-size: 2.5rem; margin-bottom: 5px;">💖</div>
+        <h1>Thank you, beautiful!</h1>
+        <p>Scratch the ticket below with your finger or mouse to reveal your real-life peace offering voucher:</p>
+        
+        <div class="wrapper-zone">
+            <div id="dataDisplay">
+                <p class="output-header">🎁 VIP APOLOGY VOUCHER 🎁</p>
+                <p class="output-body">Your Favorite Dinner + Ice Cream Delivery tonight! 🍦✨</p>
+            </div>
+            <canvas id="surfaceLayer" width="280" height="150"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const targetElement = document.getElementById('noBtn');
+        const frameAlpha = document.getElementById('viewOne');
+        const frameBeta = document.getElementById('viewTwo');
+        const matrixGrid = document.getElementById('surfaceLayer');
+        const renderContext = matrixGrid.getContext('2d');
+
+        function shiftPosition(eventData) {
+            if(eventData) eventData.preventDefault();
+            
+            const boundX = Math.floor(Math.random() * (window.innerWidth - 120)) - (window.innerWidth / 2) + 60;
+            const boundY = Math.floor(Math.random() * (window.innerHeight - 150)) - (window.innerHeight / 2) + 70;
+
+            targetElement.style.left = boundX + 'px';
+            targetElement.style.top = boundY + 'px';
+        }
+
+        function triggerNextState() {
+            frameAlpha.classList.add('hidden');
+            frameBeta.classList.remove('hidden');
+            buildMatrixSurface();
+        }
+
+        function buildMatrixSurface() {
+            renderContext.fillStyle = '#cfd8dc';
+            renderContext.fillRect(0, 0, matrixGrid.width, matrixGrid.height);
+            
+            renderContext.fillStyle = '#78909c';
+            renderContext.font = 'bold 16px Segoe UI, sans-serif';
+            renderContext.textAlign = 'center';
+            renderContext.fillText('✨ DRAG TO SCRATCH ✨', matrixGrid.width / 2, matrixGrid.height / 2 + 5);
+
+            let activeTracking = false;
+
+            function calculateVector(node) {
+                const boundaryBox = matrixGrid.getBoundingClientRect();
+                // Check for mobile multi-touch array vs desktop baseline pointer placement
+                const inputX = (node.touches && node.touches.length > 0) ? node.touches[0].clientX : node.clientX;
+                const inputY = (node.touches && node.touches.length > 0) ? node.touches[0].clientY : node.clientY;
+                return {
+                    x: inputX - boundaryBox.left,
+                    y: inputY - boundaryBox.top
+                };
+            }
+
+            function clearPixelCluster(node) {
+                if (!activeTracking) return;
+                node.preventDefault(); // Prevents system lag gestures
+                const activeVector = calculateVector(node);
+                
+                renderContext.globalCompositeOperation = 'destination-out';
+                renderContext.beginPath();
+                renderContext.arc(activeVector.x, activeVector.y, 25, 0, Math.PI * 2); // Increased eraser size to 25 for smoother scratching
+                renderContext.fill();
+            }
+
+            // Mouse Execution Triggers (Desktop)
+            matrixGrid.addEventListener('mousedown', (node) => { activeTracking = true; clearPixelCluster(node); });
+            window.addEventListener('mouseup', () => activeTracking = false);
+            matrixGrid.addEventListener('mousemove', clearPixelCluster);
+
+            // Mobile Execution Triggers (Smartphones)
+            matrixGrid.addEventListener('touchstart', (node) => { activeTracking = true; clearPixelCluster(node); });
+            window.addEventListener('touchend', () => activeTracking = false);
+            matrixGrid.addEventListener('touchmove', clearPixelCluster, { passive: false });
+        }
+    </script>
+</body>
+</html>
             top: 0;
             left: 0;
             cursor: pointer;
